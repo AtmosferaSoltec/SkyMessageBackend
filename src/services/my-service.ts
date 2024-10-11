@@ -13,7 +13,7 @@ export class MyService {
     private readonly http: HttpService,
   ) {}
 
-  @Interval(10000)
+  @Interval(60000)
   async handleInterval() {
     try {
       let envios = await this.envioService.find10Envios();

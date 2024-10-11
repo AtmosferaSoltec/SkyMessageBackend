@@ -1,34 +1,34 @@
-import { HttpService } from '@nestjs/axios';
+import { HttpService } from "@nestjs/axios";
 import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
-} from '@nestjs/common';
-import { UsuarioService } from '../admin/usuario/usuario.service';
-import { lastValueFrom } from 'rxjs';
-import { Envio } from '../envio/entities/envio.entity';
-import { EnvioService } from '../envio/envio.service';
+} from "@nestjs/common";
+import { UsuarioService } from "../admin/usuario/usuario.service";
+import { lastValueFrom } from "rxjs";
+import { Envio } from "../envio/entities/envio.entity";
+import { EnvioService } from "../envio/envio.service";
 
 @Injectable()
 export class WhatsappService {
   constructor(
     private readonly http: HttpService,
     private readonly usuarioService: UsuarioService,
-    private readonly envioService: EnvioService,
+    private readonly envioService: EnvioService
   ) {}
 
   async getQR(idUsuario: number) {
     const { instance, token } = await this.usuarioService.findOne(idUsuario);
     const response = await lastValueFrom(
       this.http.get(
-        `https://api.ultramsg.com/${instance}/instance/qrCode?token=${token}`,
-      ),
+        `https://api.ultramsg.com/${instance}/instance/qrCode?token=${token}`
+      )
     );
     const data = response.data?.qrCode;
     if (data) {
       return { qrCode: data };
     } else {
-      throw new NotFoundException('QR Code not found');
+      throw new NotFoundException("QR Code not found");
     }
   }
 
@@ -42,11 +42,11 @@ export class WhatsappService {
       if (call?.data) {
         return call?.data;
       } else {
-        throw new NotFoundException('Estado no encontrado');
+        throw new NotFoundException("Estado no encontrado");
       }
     } catch (error) {
       console.log(error);
-      throw new InternalServerErrorException('Error al obtener el estado');
+      throw new InternalServerErrorException("Error al obtener el estado");
     }
   }
 
@@ -54,11 +54,11 @@ export class WhatsappService {
     const { instance, token } = await this.usuarioService.findOne(idUsuario);
 
     const data = new URLSearchParams();
-    data.append('token', token);
+    data.append("token", token);
 
     const headers = {
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        "Content-Type": "application/x-www-form-urlencoded",
       },
     };
 
@@ -66,10 +66,10 @@ export class WhatsappService {
 
     const res: any = await lastValueFrom(this.http.post(url, data, headers));
 
-    if (res.data?.success == 'done') {
-      return { message: 'Sesión cerrada' };
+    if (res.data?.success == "done") {
+      return { message: "Sesión cerrada" };
     } else {
-      throw new InternalServerErrorException('Error al cerrar sesión');
+      throw new InternalServerErrorException("Error al cerrar sesión");
     }
   }
 
@@ -78,12 +78,12 @@ export class WhatsappService {
       const { instance, token } = await this.usuarioService.findOne(idUsuario);
       const response = await lastValueFrom(
         this.http.get(
-          `https://api.ultramsg.com/${instance}/instance/me?token=${token}`,
-        ),
+          `https://api.ultramsg.com/${instance}/instance/me?token=${token}`
+        )
       );
       const data = response?.data;
       if (!data) {
-        throw new NotFoundException('Perfil no encontrado');
+        throw new NotFoundException("Perfil no encontrado");
       }
 
       console.log(data);
@@ -95,7 +95,7 @@ export class WhatsappService {
         is_business: data?.is_business,
       };
     } catch (error) {
-      throw new InternalServerErrorException('Error al obtener el perfil');
+      throw new InternalServerErrorException("Error al obtener el perfil");
     }
   }
 
@@ -109,19 +109,26 @@ export class WhatsappService {
           }
 
           const form = new URLSearchParams();
-          form.append('token', token);
-          form.append('to', destinatario.telf);
-          form.append('body', envio.mensaje);
+          form.append("token", token);
+          form.append("to", destinatario.telf);
+
+          // Reemplazar @CLIENTE por el nombre del cliente del mensaje
+          const reemplazo = envio.mensaje.replace(
+            "@CLIENTE",
+            destinatario.nombre
+          );
+
+          form.append("body", reemplazo);
           const url = `https://api.ultramsg.com/${instance}/messages/chat`;
           const callApi = await lastValueFrom(
             this.http.post(url, form, {
               headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
+                "Content-Type": "application/x-www-form-urlencoded",
               },
-            }),
+            })
           );
 
-          if (callApi?.data?.message == 'ok') {
+          if (callApi?.data?.message == "ok") {
             await this.envioService.updateDestinatarioEnviado(destinatario.id);
           } else {
             await this.envioService.updateIntento(destinatario.id);
