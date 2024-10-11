@@ -11,6 +11,7 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { TokenDto } from './dto/token.dto';
 import { AuthGuard } from 'src/guards/auth.guard';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -33,5 +34,12 @@ export class AuthController {
   isAdmin(@Req() req: Request) {
     const { id } = req['user'];
     return this.authService.isAdmin(id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Post("change-password")
+  changePassword(@Req() req: Request, @Body() dto: ChangePasswordDto) {
+    const { id } = req['user'];
+    return this.authService.changePassword(id, dto);
   }
 }
