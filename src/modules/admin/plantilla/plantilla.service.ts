@@ -3,13 +3,13 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
-} from '@nestjs/common';
-import { CreatePlantillaDto } from './dto/create-plantilla.dto';
-import { UpdatePlantillaDto } from './dto/update-plantilla.dto';
-import { Not, Repository } from 'typeorm';
-import { Plantilla } from './entities/plantilla.entity';
-import { InjectRepository } from '@nestjs/typeorm';
-import { UsuarioService } from '../usuario/usuario.service';
+} from "@nestjs/common";
+import { CreatePlantillaDto } from "./dto/create-plantilla.dto";
+import { UpdatePlantillaDto } from "./dto/update-plantilla.dto";
+import { Not, Repository } from "typeorm";
+import { Plantilla } from "./entities/plantilla.entity";
+import { InjectRepository } from "@nestjs/typeorm";
+import { UsuarioService } from "../usuario/usuario.service";
 
 @Injectable()
 export class PlantillaService {
@@ -17,15 +17,20 @@ export class PlantillaService {
     @InjectRepository(Plantilla)
     private readonly repo: Repository<Plantilla>,
 
-    private readonly repoUsuario: UsuarioService,
+    private readonly repoUsuario: UsuarioService
   ) {}
 
   async create(dto: CreatePlantillaDto, idUser: number) {
+    //Obtener Usuario
     const usuario = await this.repoUsuario.findOne(idUser);
-    const find = await this.repo.findOne({ where: { titulo: dto.titulo } });
+
+    //Verificar si existe una plantilla con el mismo titulo y usuario
+    const find = await this.repo.findOne({
+      where: { titulo: dto.titulo, usuario: { id: idUser } },
+    });
     if (find) {
       throw new ConflictException(
-        `Plantilla con titulo ${dto.titulo} ya existe`,
+        `Plantilla con titulo ${dto.titulo} ya existe`
       );
     }
     try {
@@ -61,7 +66,7 @@ export class PlantillaService {
     });
     if (find) {
       throw new ConflictException(
-        `Plantilla con titulo ${dto.titulo} ya existe`,
+        `Plantilla con titulo ${dto.titulo} ya existe`
       );
     }
     try {
@@ -70,7 +75,7 @@ export class PlantillaService {
       return await this.findOne(id);
     } catch (error) {
       throw new InternalServerErrorException(
-        `Error al actualizar la plantilla`,
+        `Error al actualizar la plantilla`
       );
     }
   }
