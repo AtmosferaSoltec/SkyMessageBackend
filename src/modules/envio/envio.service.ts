@@ -160,7 +160,7 @@ export class EnvioService {
 
   async find10Envios() {
     const envios = await this.repo.find({
-      relations: ['usuario', 'destinatarios', 'destinatarios.estado'],
+      relations: ['usuario', 'destinatarios', 'destinatarios.estado', 'tipoEnvio'],
       where: { destinatarios: { estado: { nombre: 'Pendiente' } } },
       order: { created_at: 'DESC' },
       take: 10,
