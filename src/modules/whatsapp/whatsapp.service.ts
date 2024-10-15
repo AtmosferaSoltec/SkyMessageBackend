@@ -103,23 +103,48 @@ export class WhatsappService {
     try {
       envios.forEach(async (envio) => {
         const { instance, token } = envio.usuario;
-        envio.destinatarios.forEach(async (destinatario) => {
-          if (destinatario.intentos >= 3) {
-            return;
-          }
+        if (envio.tipoEnvio.nombre == "Normal") {
+          envio.destinatarios.forEach(async (destinatario) => {
+            if (destinatario.intentos >= 3) {
+              return;
+            }
 
+            const form = new URLSearchParams();
+            form.append("token", token);
+            form.append("to", destinatario.telf);
+
+            // Reemplazar @CLIENTE por el nombre del cliente del mensaje
+            const reemplazo = envio.mensaje.replace(
+              "@CLIENTE",
+              destinatario.nombre
+            );
+
+            form.append("body", reemplazo);
+            const url = `https://api.ultramsg.com/${instance}/messages/chat`;
+            const callApi = await lastValueFrom(
+              this.http.post(url, form, {
+                headers: {
+                  "Content-Type": "application/x-www-form-urlencoded",
+                },
+              })
+            );
+
+            if (callApi?.data?.message == "ok") {
+              await this.envioService.updateDestinatarioEnviado(
+                destinatario.id
+              );
+            } else {
+              await this.envioService.updateIntento(destinatario.id);
+            }
+          });
+        }
+        if (envio.tipoEnvio.nombre == "Imagen") {
           const form = new URLSearchParams();
           form.append("token", token);
-          form.append("to", destinatario.telf);
-
-          // Reemplazar @CLIENTE por el nombre del cliente del mensaje
-          const reemplazo = envio.mensaje.replace(
-            "@CLIENTE",
-            destinatario.nombre
-          );
-
-          form.append("body", reemplazo);
-          const url = `https://api.ultramsg.com/${instance}/messages/chat`;
+          form.append("to", envio.destinatarios[0].telf);
+          form.append("caption", envio.mensaje);
+          form.append("image", envio.urlArchivo);
+          const url = `https://api.ultramsg.com/${instance}/messages/image`;
           const callApi = await lastValueFrom(
             this.http.post(url, form, {
               headers: {
@@ -127,13 +152,14 @@ export class WhatsappService {
               },
             })
           );
-
           if (callApi?.data?.message == "ok") {
-            await this.envioService.updateDestinatarioEnviado(destinatario.id);
+            await this.envioService.updateDestinatarioEnviado(
+              envio.destinatarios[0].id
+            );
           } else {
-            await this.envioService.updateIntento(destinatario.id);
+            await this.envioService.updateIntento(envio.destinatarios[0].id);
           }
-        });
+        }
       });
     } catch (error) {
       //console.log('Api Error', error?.message);

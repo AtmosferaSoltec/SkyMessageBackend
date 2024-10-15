@@ -1,5 +1,5 @@
 import { Type } from "class-transformer";
-import { IsArray, ValidateNested, IsString, IsNotEmpty, IsNumber } from "class-validator";
+import { IsArray, ValidateNested, IsString, IsNotEmpty, IsNumber, IsIn } from "class-validator";
 
 export class CreateEnvioDto {
     @IsArray()
@@ -13,7 +13,11 @@ export class CreateEnvioDto {
 
     @IsNumber()
     @IsNotEmpty()
+    @IsIn([1, 2, 3], { message: 'Solo se permiten los valores (1) Mensaje, (2) Imagen, (3) Pdf' })
     tipoEnvio: number;
+
+    @IsString()
+    urlArchivo: string;
   }
   
   export class CreateDestinatarioDto {

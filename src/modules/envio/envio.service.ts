@@ -72,6 +72,7 @@ export class EnvioService {
       mensaje: dto.mensaje,
       usuario: user,
       tipoEnvio: tipoEnvio,
+      urlArchivo: dto.urlArchivo,
     });
 
     const envioSave = await this.repo.save(envio);

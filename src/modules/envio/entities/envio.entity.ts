@@ -28,6 +28,12 @@ export class Envio {
   mensaje: string;
 
   @Column({
+    type: 'text',
+    nullable: true,
+  })
+  urlArchivo: string;
+
+  @Column({
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
   })
