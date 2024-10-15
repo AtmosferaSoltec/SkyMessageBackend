@@ -101,6 +101,8 @@ export class WhatsappService {
 
   async sendEnvios(envios: Envio[]) {
     try {
+      console.log(envios);
+      
       envios.forEach(async (envio) => {
         const { instance, token } = envio.usuario;
         if (envio.tipoEnvio.nombre == "Normal") {
