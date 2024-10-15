@@ -163,7 +163,7 @@ export class EnvioService {
       relations: ['usuario', 'destinatarios', 'destinatarios.estado', 'tipoEnvio'],
       where: { destinatarios: { estado: { nombre: 'Pendiente' } } },
       order: { created_at: 'DESC' },
-      take: 50,
+      take: 1,
     });
 
     return envios;
