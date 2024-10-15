@@ -16,8 +16,8 @@ export class MyService {
   @Interval(60000)
   async handleInterval() {
     try {
-      let envios = await this.envioService.find10Envios();
-      this.whatsappService.sendEnvios(envios)
+      let envio = await this.envioService.find10Envios();
+      this.whatsappService.sendEnvios(envio)
     } catch (error) {
       console.log(error?.message);
     }

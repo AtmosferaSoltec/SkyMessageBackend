@@ -99,52 +99,59 @@ export class WhatsappService {
     }
   }
 
-  async sendEnvios(envios: Envio[]) {
+  async sendEnvios(envio: Envio) {
     try {
-      console.log(envios);
-      
-      envios.forEach(async (envio) => {
-        const { instance, token } = envio.usuario;
-        if (envio.tipoEnvio.nombre == "Normal") {
-          envio.destinatarios.forEach(async (destinatario) => {
-            if (destinatario.intentos >= 3) {
-              return;
-            }
+      console.log(envio);
+      const { instance, token } = envio.usuario;
+      if (envio.tipoEnvio.nombre == "Normal") {
+        envio.destinatarios.forEach(async (destinatario) => {
+          if (destinatario.intentos >= 3) {
+            return;
+          }
 
-            const form = new URLSearchParams();
-            form.append("token", token);
-            form.append("to", destinatario.telf);
-
-            // Reemplazar @CLIENTE por el nombre del cliente del mensaje
-            const reemplazo = envio.mensaje.replace(
-              "@CLIENTE",
-              destinatario.nombre
-            );
-
-            form.append("body", reemplazo);
-            const url = `https://api.ultramsg.com/${instance}/messages/chat`;
-            const callApi = await lastValueFrom(
-              this.http.post(url, form, {
-                headers: {
-                  "Content-Type": "application/x-www-form-urlencoded",
-                },
-              })
-            );
-
-            if (callApi?.data?.message == "ok") {
-              await this.envioService.updateDestinatarioEnviado(
-                destinatario.id
-              );
-            } else {
-              await this.envioService.updateIntento(destinatario.id);
-            }
-          });
-        }
-        if (envio.tipoEnvio.nombre == "Imagen") {
           const form = new URLSearchParams();
           form.append("token", token);
-          form.append("to", envio.destinatarios[0].telf);
-          form.append("caption", envio.mensaje);
+          form.append("to", destinatario.telf);
+
+          // Reemplazar @CLIENTE por el nombre del cliente del mensaje
+          const reemplazo = envio.mensaje.replace(
+            "@CLIENTE",
+            destinatario.nombre
+          );
+
+          form.append("body", reemplazo);
+          const url = `https://api.ultramsg.com/${instance}/messages/chat`;
+          const callApi = await lastValueFrom(
+            this.http.post(url, form, {
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+            })
+          );
+
+          if (callApi?.data?.message == "ok") {
+            await this.envioService.updateDestinatarioEnviado(destinatario.id);
+          } else {
+            await this.envioService.updateIntento(destinatario.id);
+          }
+        });
+      }
+      if (envio.tipoEnvio.nombre == "Imagen") {
+        envio.destinatarios.forEach(async (destinatario) => {
+          if (destinatario.intentos >= 3) {
+            return;
+          }
+
+          // Reemplazar @CLIENTE por el nombre del cliente del mensaje
+          const reemplazo = envio.mensaje.replace(
+            "@CLIENTE",
+            destinatario.nombre
+          );
+
+          const form = new URLSearchParams();
+          form.append("token", token);
+          form.append("to", destinatario.telf);
+          form.append("caption", reemplazo);
           form.append("image", envio.urlArchivo);
           const url = `https://api.ultramsg.com/${instance}/messages/image`;
           const callApi = await lastValueFrom(
@@ -154,15 +161,15 @@ export class WhatsappService {
               },
             })
           );
+          console.log(callApi?.data);
+
           if (callApi?.data?.message == "ok") {
-            await this.envioService.updateDestinatarioEnviado(
-              envio.destinatarios[0].id
-            );
+            await this.envioService.updateDestinatarioEnviado(destinatario.id);
           } else {
-            await this.envioService.updateIntento(envio.destinatarios[0].id);
+            await this.envioService.updateIntento(destinatario.id);
           }
-        }
-      });
+        });
+      }
     } catch (error) {
       //console.log('Api Error', error?.message);
     }

@@ -3,16 +3,16 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
-} from '@nestjs/common';
-import { UpdateEnvioDto } from './dto/update-envio.dto';
-import { CreateEnvioDto } from './dto/create-envio.dto';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Envio } from './entities/envio.entity';
-import { Repository } from 'typeorm';
-import { Destinatario } from './entities/destinatario.entity';
-import { EstadoDestinatario } from './entities/estado-destinatario.entity';
-import { UsuarioService } from '../admin/usuario/usuario.service';
-import { TipoEnvio } from './entities/tipo-envio.entity';
+} from "@nestjs/common";
+import { UpdateEnvioDto } from "./dto/update-envio.dto";
+import { CreateEnvioDto } from "./dto/create-envio.dto";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Envio } from "./entities/envio.entity";
+import { Repository } from "typeorm";
+import { Destinatario } from "./entities/destinatario.entity";
+import { EstadoDestinatario } from "./entities/estado-destinatario.entity";
+import { UsuarioService } from "../admin/usuario/usuario.service";
+import { TipoEnvio } from "./entities/tipo-envio.entity";
 
 @Injectable()
 export class EnvioService {
@@ -29,7 +29,7 @@ export class EnvioService {
     @InjectRepository(TipoEnvio)
     private readonly repoTipoEnvio: Repository<TipoEnvio>,
 
-    private readonly usuarioService: UsuarioService,
+    private readonly usuarioService: UsuarioService
   ) {}
 
   async create(dto: CreateEnvioDto, idUser: number) {
@@ -38,11 +38,11 @@ export class EnvioService {
 
     // Buscar Estado Pendiente
     const pendiente = await this.repoEstado.findOne({
-      where: { nombre: 'Pendiente' },
+      where: { nombre: "Pendiente" },
     });
 
     if (!pendiente) {
-      throw new NotFoundException('Estado no encontrado');
+      throw new NotFoundException("Estado no encontrado");
     }
 
     // Buscar Tipo Envio
@@ -51,13 +51,13 @@ export class EnvioService {
     });
 
     if (!tipoEnvio) {
-      throw new NotFoundException('Tipo de envio no encontrado');
+      throw new NotFoundException("Tipo de envio no encontrado");
     }
 
     // Obtener correlativo por usuario
     let lastEnvio = await this.repo.findOne({
       where: { usuario: user },
-      order: { correlativo: 'DESC' },
+      order: { correlativo: "DESC" },
     });
 
     let correlativo = lastEnvio?.correlativo;
@@ -81,11 +81,11 @@ export class EnvioService {
     const uniqueDestinatarios = dto.destinatarios.filter(
       (dest, index, self) =>
         /^[0-9]{9}$/.test(dest.telf) && // Validar que el teléfono tenga exactamente 9 dígitos numéricos
-        index === self.findIndex((d) => d.telf === dest.telf), // Verificar que sea el primer contacto con ese teléfono
+        index === self.findIndex((d) => d.telf === dest.telf) // Verificar que sea el primer contacto con ese teléfono
     );
 
     if (uniqueDestinatarios.length == 0) {
-      throw new ConflictException('No hay destinatarios válidos');
+      throw new ConflictException("No hay destinatarios válidos");
     }
 
     //Crear Destinatarios
@@ -106,14 +106,14 @@ export class EnvioService {
     const user = await this.usuarioService.findOne(idUsuario);
 
     const envios = await this.repo.find({
-      relations: ['destinatarios', 'destinatarios.estado'],
-      order: { created_at: 'DESC' },
+      relations: ["destinatarios", "destinatarios.estado"],
+      order: { created_at: "DESC" },
       where: { usuario: user },
     });
     const listMap = envios.map((envio) => {
       const { destinatarios } = envio;
       const enviados = destinatarios.filter((dest) => {
-        return dest.estado.nombre == 'Enviado';
+        return dest.estado.nombre == "Enviado";
       });
 
       return {
@@ -132,10 +132,10 @@ export class EnvioService {
     try {
       const list = await this.repo.find({
         relations: [
-          'destinatarios',
-          'destinatarios.estado',
-          'usuario',
-          'tipoEnvio',
+          "destinatarios",
+          "destinatarios.estado",
+          "usuario",
+          "tipoEnvio",
         ],
       });
 
@@ -146,7 +146,7 @@ export class EnvioService {
         mensaje: envio.mensaje,
         created_at: envio.created_at,
         destinatarios: envio.destinatarios
-          .filter((dest) => dest.estado.nombre == 'Pendiente')
+          .filter((dest) => dest.estado.nombre == "Pendiente")
           .map((destinatario) => ({
             nombre: destinatario.nombre,
             telf: destinatario.telf,
@@ -159,14 +159,29 @@ export class EnvioService {
   }
 
   async find10Envios() {
-    const envios = await this.repo.find({
-      relations: ['usuario', 'destinatarios', 'destinatarios.estado', 'tipoEnvio'],
-      where: { destinatarios: { estado: { nombre: 'Pendiente' } } },
-      order: { created_at: 'DESC' },
-      take: 1,
+    const envio = await this.repo.findOne({
+      relations: [
+        "usuario",
+        "destinatarios",
+        "destinatarios.estado",
+        "tipoEnvio",
+      ],
+      where: { destinatarios: { estado: { nombre: "Pendiente" } } },
+      order: { created_at: "DESC" },
     });
+    if (!envio) {
+      return
+    }
 
-    return envios;
+  // Filtrar destinatarios pendientes manualmente
+  const destinatariosPendientes = envio.destinatarios
+    .filter((d) => d.estado.nombre === "Pendiente")
+    .slice(0, 30);
+
+    return {
+      ...envio,
+      destinatarios: destinatariosPendientes,
+    };
   }
 
   async findOne(id: number) {
@@ -185,7 +200,7 @@ export class EnvioService {
       where: { id: idDestinatario },
     });
     if (!destinatario) {
-      throw new NotFoundException('Destinatario no encontrado');
+      throw new NotFoundException("Destinatario no encontrado");
     }
     destinatario.intentos = destinatario.intentos + 1;
     await this.repoDestinatario.save(destinatario);
@@ -196,15 +211,15 @@ export class EnvioService {
       where: { id: idDestinatario },
     });
     if (!destinatario) {
-      throw new NotFoundException('Destinatario no encontrado');
+      throw new NotFoundException("Destinatario no encontrado");
     }
 
     const enviado = await this.repoEstado.findOne({
-      where: { nombre: 'Enviado' },
+      where: { nombre: "Enviado" },
     });
 
     if (!enviado) {
-      throw new NotFoundException('Estado no encontrado');
+      throw new NotFoundException("Estado no encontrado");
     }
 
     destinatario.estado = enviado;
