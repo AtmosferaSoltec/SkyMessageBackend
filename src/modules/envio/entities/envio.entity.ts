@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { Destinatario } from './destinatario.entity';
 import { TipoEnvio } from './tipo-envio.entity';
+import { EstadoEnvio } from './estado-envio.entity';
 
 @Entity({ name: 'envio' })
 export class Envio {
@@ -47,4 +48,10 @@ export class Envio {
 
   @OneToMany(() => Destinatario, (dest) => dest.envio)
   destinatarios: Destinatario[];
+
+  @ManyToOne(
+    () => EstadoEnvio,
+    (e) => e.envios
+  )
+  estado: EstadoEnvio;
 }

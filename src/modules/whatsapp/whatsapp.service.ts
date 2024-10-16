@@ -101,7 +101,8 @@ export class WhatsappService {
 
   async sendEnvios(envio: Envio) {
     try {
-      console.log(envio);
+      // Cambiar estado a Enviando
+      await this.envioService.updateEstado(envio.id, "Enviando");
       const { instance, token } = envio.usuario;
       if (envio.tipoEnvio.nombre == "Normal") {
         envio.destinatarios.forEach(async (destinatario) => {
@@ -131,6 +132,9 @@ export class WhatsappService {
 
           if (callApi?.data?.message == "ok") {
             await this.envioService.updateDestinatarioEnviado(destinatario.id);
+
+            // Verificar si todos los destinatarios fueron enviados
+            await this.envioService.verificarEnvioCompletado(envio.id);
           } else {
             await this.envioService.updateIntento(destinatario.id);
           }
@@ -161,10 +165,10 @@ export class WhatsappService {
               },
             })
           );
-          console.log(callApi?.data);
 
           if (callApi?.data?.message == "ok") {
             await this.envioService.updateDestinatarioEnviado(destinatario.id);
+            await this.envioService.verificarEnvioCompletado(envio.id);
           } else {
             await this.envioService.updateIntento(destinatario.id);
           }

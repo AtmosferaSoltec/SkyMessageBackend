@@ -13,12 +13,16 @@ import { Destinatario } from "./entities/destinatario.entity";
 import { EstadoDestinatario } from "./entities/estado-destinatario.entity";
 import { UsuarioService } from "../admin/usuario/usuario.service";
 import { TipoEnvio } from "./entities/tipo-envio.entity";
+import { EstadoEnvio } from "./entities/estado-envio.entity";
 
 @Injectable()
 export class EnvioService {
   constructor(
     @InjectRepository(Envio)
     private readonly repo: Repository<Envio>,
+
+    @InjectRepository(EstadoEnvio)
+    private readonly repoEstadoEnvio: Repository<EstadoEnvio>,
 
     @InjectRepository(Destinatario)
     private readonly repoDestinatario: Repository<Destinatario>,
@@ -54,6 +58,15 @@ export class EnvioService {
       throw new NotFoundException("Tipo de envio no encontrado");
     }
 
+    // Buscar Estado Envio
+    const estadoEnvio = await this.repoEstadoEnvio.findOne({
+      where: { nombre: "Pendiente" },
+    });
+
+    if (!estadoEnvio) {
+      throw new NotFoundException("Estado de envio no encontrado");
+    }
+
     // Obtener correlativo por usuario
     let lastEnvio = await this.repo.findOne({
       where: { usuario: user },
@@ -73,6 +86,7 @@ export class EnvioService {
       usuario: user,
       tipoEnvio: tipoEnvio,
       urlArchivo: dto.urlArchivo,
+      estado: estadoEnvio,
     });
 
     const envioSave = await this.repo.save(envio);
@@ -106,7 +120,12 @@ export class EnvioService {
     const user = await this.usuarioService.findOne(idUsuario);
 
     const envios = await this.repo.find({
-      relations: ["destinatarios", "destinatarios.estado"],
+      relations: [
+        "destinatarios",
+        "destinatarios.estado",
+        "tipoEnvio",
+        "estado",
+      ],
       order: { created_at: "DESC" },
       where: { usuario: user },
     });
@@ -116,6 +135,12 @@ export class EnvioService {
         return dest.estado.nombre == "Enviado";
       });
 
+      //verificar si el urlArchivo es una url valida si no, mandar como null
+      let urlArchivo = null;
+      if (envio.urlArchivo) {
+        urlArchivo = envio.urlArchivo;
+      }
+
       return {
         id: envio.id,
         correlativo: envio.correlativo,
@@ -123,6 +148,9 @@ export class EnvioService {
         created_at: envio.created_at,
         enviados: enviados.length,
         total: envio.destinatarios.length,
+        tipoEnvio: envio.tipoEnvio.nombre,
+        urlArchivo: urlArchivo,
+        estado: envio.estado.nombre,
       };
     });
     return listMap;
@@ -170,13 +198,13 @@ export class EnvioService {
       order: { created_at: "DESC" },
     });
     if (!envio) {
-      return
+      return;
     }
 
-  // Filtrar destinatarios pendientes manualmente
-  const destinatariosPendientes = envio.destinatarios
-    .filter((d) => d.estado.nombre === "Pendiente")
-    .slice(0, 30);
+    // Filtrar destinatarios pendientes manualmente
+    const destinatariosPendientes = envio.destinatarios
+      .filter((d) => d.estado.nombre === "Pendiente")
+      .slice(0, 30);
 
     return {
       ...envio,
@@ -224,5 +252,90 @@ export class EnvioService {
 
     destinatario.estado = enviado;
     await this.repoDestinatario.save(destinatario);
+  }
+
+  async stopEnvio(idEnvio: number, idUsuario: number) {
+    const envio = await this.repo.findOne({
+      where: { id: idEnvio },
+      relations: ["destinatarios"],
+    });
+
+    if (!envio) {
+      throw new NotFoundException("Envio no encontrado");
+    }
+
+    const cancelado = await this.repoEstado.findOne({
+      where: { nombre: "Cancelado" },
+    });
+
+    if (!cancelado) {
+      throw new NotFoundException("Estado no encontrado");
+    }
+
+    envio.destinatarios.forEach(async (dest) => {
+      if (dest.estado.nombre == "Pendiente") {
+        dest.estado = cancelado;
+        await this.repoDestinatario.save(dest);
+      }
+    });
+
+    const estadoEnvio = await this.repoEstadoEnvio.findOne({
+      where: { nombre: "Cancelado" },
+    });
+
+    if (!estadoEnvio) {
+      throw new NotFoundException("Estado no encontrado");
+    }
+
+    envio.estado = estadoEnvio;
+
+    await this.repo.save(envio);
+    return;
+  }
+
+  async updateEstado(idEnvio: number, estado: string) {
+    const estadoEnvio = await this.repoEstadoEnvio.findOne({
+      where: { nombre: estado },
+    });
+    if (!estadoEnvio) {
+      throw new NotFoundException("Estado no encontrado");
+    }
+    const envio = await this.repo.findOne({ where: { id: idEnvio } });
+
+    if (!envio) {
+      throw new NotFoundException("Envio no encontrado");
+    }
+    envio.estado = estadoEnvio;
+    await this.repo.save(envio);
+    return;
+  }
+
+  async verificarEnvioCompletado(idEnvio: number) {
+    const envio = await this.repo.findOne({
+      where: { id: idEnvio },
+      relations: ["destinatarios"],
+    });
+
+    if (!envio) {
+      throw new NotFoundException("Envio no encontrado");
+    }
+
+    // Verificar si todos los destinatarios tienen estado Enviado
+    const enviados = envio.destinatarios.filter(
+      (dest) => dest.estado.nombre == "Enviado"
+    );
+
+    if (enviados.length == envio.destinatarios.length) {
+      const estadoEnvioCompletado = await this.repoEstadoEnvio.findOne({
+        where: { nombre: "Completado" },
+      });
+
+      if (!estadoEnvioCompletado) {
+        throw new NotFoundException("Estado no encontrado");
+      }
+
+      envio.estado = estadoEnvioCompletado;
+      await this.repo.save(envio);
+    }
   }
 }
