@@ -104,6 +104,8 @@ export class WhatsappService {
       // Cambiar estado a Enviando
       await this.envioService.updateEstado(envio.id, "Enviando");
       const { instance, token } = envio.usuario;
+
+      // Verificar si el envio es de tipo Normal
       if (envio.tipoEnvio.nombre == "Normal") {
         envio.destinatarios.forEach(async (destinatario) => {
           if (destinatario.intentos >= 3) {
@@ -140,6 +142,8 @@ export class WhatsappService {
           }
         });
       }
+
+      // Verificar si el envio es de tipo Imagen
       if (envio.tipoEnvio.nombre == "Imagen") {
         envio.destinatarios.forEach(async (destinatario) => {
           if (destinatario.intentos >= 3) {
@@ -174,8 +178,121 @@ export class WhatsappService {
           }
         });
       }
+
+      // Verificar si el envio es de tipo Documento
+
+      // Verificar si el envio es de tipo Video
     } catch (error) {
       //console.log('Api Error', error?.message);
+    }
+  }
+
+  async send(envio: Envio) {
+    try {
+      // Cambiar estado a Enviando
+      await this.envioService.updateEstado(envio.id, "Enviando");
+      const { instance, token } = envio.usuario;
+
+      // Función para procesar cada destinatario
+      const processDestinatario = async (destinatario, tipo: string) => {
+        if (destinatario.intentos >= 3) return;
+
+        const reemplazo = envio.mensaje.replace(
+          "@CLIENTE",
+          destinatario.nombre
+        );
+
+        let form = new URLSearchParams();
+        form.append("token", token);
+        form.append("to", destinatario.telf);
+
+        // Mensaje
+        if (tipo === "Normal") {
+          form.append("body", reemplazo);
+          return await this.sendRequest(
+            instance,
+            "chat",
+            form,
+            destinatario.id,
+            envio.id
+          );
+        }
+        // Imagen
+        if (tipo === "Imagen") {
+          form.append("caption", reemplazo);
+          form.append("image", envio.urlArchivo);
+          return await this.sendRequest(
+            instance,
+            "image",
+            form,
+            destinatario.id,
+            envio.id
+          );
+        }
+        // Documento
+        if (tipo === "Pdf") {
+          const nombreArchivo = envio.nombreArchivo ?? "documento";
+          form.append("filename", `${nombreArchivo}.pdf`);
+          form.append("document", envio.urlArchivo);
+          form.append("caption", reemplazo);
+          return await this.sendRequest(
+            instance,
+            "document",
+            form,
+            destinatario.id,
+            envio.id
+          );
+        }
+
+        // Video
+        if (tipo === "Video") {
+          form.append("video", envio.urlArchivo);
+          form.append("caption", reemplazo);
+          return await this.sendRequest(
+            instance,
+            "video",
+            form,
+            destinatario.id,
+            envio.id
+          );
+        }
+      };
+
+      // Usar un bucle for...of en lugar de forEach para manejar promesas adecuadamente
+      for (const destinatario of envio.destinatarios) {
+        await processDestinatario(destinatario, envio.tipoEnvio.nombre);
+      }
+    } catch (error) {
+      console.error("Api Error:", error.message);
+    }
+  }
+
+  // Función reutilizable para manejar las solicitudes HTTP
+  private async sendRequest(
+    instance: string,
+    endpoint: string,
+    form: URLSearchParams,
+    destinatarioId: number,
+    envioId: number
+  ) {
+    try {
+      const url = `https://api.ultramsg.com/${instance}/messages/${endpoint}`;
+      const callApi = await lastValueFrom(
+        this.http.post(url, form, {
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+        })
+      );
+
+      if (callApi?.data?.message === "ok") {
+        await this.envioService.updateDestinatarioEnviado(destinatarioId);
+        await this.envioService.verificarEnvioCompletado(envioId);
+      } else {
+        await this.envioService.updateIntento(destinatarioId);
+      }
+    } catch (error) {
+      console.error("Error sending message:", error.message);
     }
   }
 }
