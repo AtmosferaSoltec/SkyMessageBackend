@@ -206,8 +206,10 @@ export class WhatsappService {
         form.append("token", token);
         form.append("to", destinatario.telf);
 
+        console.log(tipo);
+        
         // Mensaje
-        if (tipo === "Normal") {
+        if (tipo == "Normal") {
           form.append("body", reemplazo);
           return await this.sendRequest(
             instance,
@@ -218,7 +220,7 @@ export class WhatsappService {
           );
         }
         // Imagen
-        if (tipo === "Imagen") {
+        if (tipo == "Imagen") {
           form.append("caption", reemplazo);
           form.append("image", envio.urlArchivo);
           return await this.sendRequest(
@@ -230,7 +232,7 @@ export class WhatsappService {
           );
         }
         // Documento
-        if (tipo === "Pdf") {
+        if (tipo == "Pdf") {
           const nombreArchivo = envio.nombreArchivo ?? "documento";
           form.append("filename", `${nombreArchivo}.pdf`);
           form.append("document", envio.urlArchivo);
@@ -245,7 +247,7 @@ export class WhatsappService {
         }
 
         // Video
-        if (tipo === "Video") {
+        if (tipo == "Video") {
           form.append("video", envio.urlArchivo);
           form.append("caption", reemplazo);
           return await this.sendRequest(
