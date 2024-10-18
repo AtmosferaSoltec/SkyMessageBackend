@@ -13,7 +13,7 @@ export class CreateEnvioDto {
 
     @IsNumber()
     @IsNotEmpty()
-    @IsIn([1, 2, 3], { message: 'Solo se permiten los valores (1) Mensaje, (2) Imagen, (3) Pdf' })
+    @IsIn([1, 2, 3, 4], { message: 'Solo se permiten los valores (1) Mensaje, (2) Imagen, (3) Pdf, (4) Video' })
     tipoEnvio: number;
 
     @IsString()

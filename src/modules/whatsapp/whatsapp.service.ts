@@ -99,94 +99,6 @@ export class WhatsappService {
     }
   }
 
-  async sendEnvios(envio: Envio) {
-    try {
-      // Cambiar estado a Enviando
-      await this.envioService.updateEstado(envio.id, "Enviando");
-      const { instance, token } = envio.usuario;
-
-      // Verificar si el envio es de tipo Normal
-      if (envio.tipoEnvio.nombre == "Normal") {
-        envio.destinatarios.forEach(async (destinatario) => {
-          if (destinatario.intentos >= 3) {
-            return;
-          }
-
-          const form = new URLSearchParams();
-          form.append("token", token);
-          form.append("to", destinatario.telf);
-
-          // Reemplazar @CLIENTE por el nombre del cliente del mensaje
-          const reemplazo = envio.mensaje.replace(
-            "@CLIENTE",
-            destinatario.nombre
-          );
-
-          form.append("body", reemplazo);
-          const url = `https://api.ultramsg.com/${instance}/messages/chat`;
-          const callApi = await lastValueFrom(
-            this.http.post(url, form, {
-              headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-              },
-            })
-          );
-
-          if (callApi?.data?.message == "ok") {
-            await this.envioService.updateDestinatarioEnviado(destinatario.id);
-
-            // Verificar si todos los destinatarios fueron enviados
-            await this.envioService.verificarEnvioCompletado(envio.id);
-          } else {
-            await this.envioService.updateIntento(destinatario.id);
-          }
-        });
-      }
-
-      // Verificar si el envio es de tipo Imagen
-      if (envio.tipoEnvio.nombre == "Imagen") {
-        envio.destinatarios.forEach(async (destinatario) => {
-          if (destinatario.intentos >= 3) {
-            return;
-          }
-
-          // Reemplazar @CLIENTE por el nombre del cliente del mensaje
-          const reemplazo = envio.mensaje.replace(
-            "@CLIENTE",
-            destinatario.nombre
-          );
-
-          const form = new URLSearchParams();
-          form.append("token", token);
-          form.append("to", destinatario.telf);
-          form.append("caption", reemplazo);
-          form.append("image", envio.urlArchivo);
-          const url = `https://api.ultramsg.com/${instance}/messages/image`;
-          const callApi = await lastValueFrom(
-            this.http.post(url, form, {
-              headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-              },
-            })
-          );
-
-          if (callApi?.data?.message == "ok") {
-            await this.envioService.updateDestinatarioEnviado(destinatario.id);
-            await this.envioService.verificarEnvioCompletado(envio.id);
-          } else {
-            await this.envioService.updateIntento(destinatario.id);
-          }
-        });
-      }
-
-      // Verificar si el envio es de tipo Documento
-
-      // Verificar si el envio es de tipo Video
-    } catch (error) {
-      //console.log('Api Error', error?.message);
-    }
-  }
-
   async send(envio: Envio) {
     try {
       // Cambiar estado a Enviando
@@ -205,8 +117,6 @@ export class WhatsappService {
         let form = new URLSearchParams();
         form.append("token", token);
         form.append("to", destinatario.telf);
-
-        console.log(tipo);
         
         // Mensaje
         if (tipo == "Normal") {
