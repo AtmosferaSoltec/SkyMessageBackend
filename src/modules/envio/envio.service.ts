@@ -1,7 +1,6 @@
 import {
   ConflictException,
   Injectable,
-  InternalServerErrorException,
   NotFoundException,
 } from "@nestjs/common";
 import { UpdateEnvioDto } from "./dto/update-envio.dto";
@@ -300,7 +299,6 @@ export class EnvioService {
     destinatario.estado = estadoEstadoDestinatario;
     await this.repoDestinatario.save(destinatario);
     return;
-
   }
 
   async verificarEnvioCompletado(idEnvio: number) {
