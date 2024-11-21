@@ -12,13 +12,14 @@ export class MyService {
     private readonly http: HttpService
   ) {}
 
-  @Interval(10000)
+  @Interval(60000)
   async handleInterval() {
     try {
-      let envio = await this.envioService.find10Envios();
+      let envio = await this.envioService.findNumberEnvios(30);
       if (!envio) {
         return;
       }
+      
       this.whatsappService.send(envio);
     } catch (error) {
       console.log(error?.message);

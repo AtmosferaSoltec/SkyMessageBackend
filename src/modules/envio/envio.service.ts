@@ -28,7 +28,7 @@ export class EnvioService {
     private readonly repoDestinatario: Repository<Destinatario>,
 
     @InjectRepository(EstadoDestinatario)
-    private readonly repoEstado: Repository<EstadoDestinatario>,
+    private readonly repoEstadoDestinario: Repository<EstadoDestinatario>,
 
     @InjectRepository(TipoEnvio)
     private readonly repoTipoEnvio: Repository<TipoEnvio>,
@@ -41,7 +41,7 @@ export class EnvioService {
     const user = await this.usuarioService.findOne(idUser);
 
     // Buscar Estado Pendiente
-    const pendiente = await this.repoEstado.findOne({
+    const pendiente = await this.repoEstadoDestinario.findOne({
       where: { nombre: "Pendiente" },
     });
 
@@ -186,7 +186,7 @@ export class EnvioService {
     }
   }
 
-  async find10Envios() {
+  async findNumberEnvios(count: number) {
     const envio = await this.repo.findOne({
       relations: [
         "usuario",
@@ -204,7 +204,7 @@ export class EnvioService {
     // Filtrar destinatarios pendientes manualmente
     const destinatariosPendientes = envio.destinatarios
       .filter((d) => d.estado.nombre === "Pendiente")
-      .slice(0, 30);
+      .slice(0, count);
 
     return {
       ...envio,
@@ -223,37 +223,6 @@ export class EnvioService {
     return `This action removes a #${id} envio`;
   }
 
-  async updateIntento(idDestinatario: number) {
-    const destinatario = await this.repoDestinatario.findOne({
-      where: { id: idDestinatario },
-    });
-    if (!destinatario) {
-      throw new NotFoundException("Destinatario no encontrado");
-    }
-    destinatario.intentos = destinatario.intentos + 1;
-    await this.repoDestinatario.save(destinatario);
-  }
-
-  async updateDestinatarioEnviado(idDestinatario: number) {
-    const destinatario = await this.repoDestinatario.findOne({
-      where: { id: idDestinatario },
-    });
-    if (!destinatario) {
-      throw new NotFoundException("Destinatario no encontrado");
-    }
-
-    const enviado = await this.repoEstado.findOne({
-      where: { nombre: "Enviado" },
-    });
-
-    if (!enviado) {
-      throw new NotFoundException("Estado no encontrado");
-    }
-
-    destinatario.estado = enviado;
-    await this.repoDestinatario.save(destinatario);
-  }
-
   async stopEnvio(idEnvio: number, idUsuario: number) {
     const envio = await this.repo.findOne({
       where: { id: idEnvio },
@@ -264,7 +233,7 @@ export class EnvioService {
       throw new NotFoundException("Envio no encontrado");
     }
 
-    const cancelado = await this.repoEstado.findOne({
+    const cancelado = await this.repoEstadoDestinario.findOne({
       where: { nombre: "Cancelado" },
     });
 
@@ -297,6 +266,7 @@ export class EnvioService {
     const estadoEnvio = await this.repoEstadoEnvio.findOne({
       where: { nombre: estado },
     });
+
     if (!estadoEnvio) {
       throw new NotFoundException("Estado no encontrado");
     }
@@ -308,6 +278,29 @@ export class EnvioService {
     envio.estado = estadoEnvio;
     await this.repo.save(envio);
     return;
+  }
+
+  async updateEstadoDestinario(idDestinatario: number, idEstado: number) {
+    const estadoEstadoDestinatario = await this.repoEstadoDestinario.findOne({
+      where: { id: idEstado },
+    });
+
+    if (!estadoEstadoDestinatario) {
+      throw new NotFoundException("Estado no encontrado");
+    }
+
+    const destinatario = await this.repoDestinatario.findOne({
+      where: { id: idDestinatario },
+    });
+
+    if (!destinatario) {
+      throw new NotFoundException("Destinatario no encontrado");
+    }
+
+    destinatario.estado = estadoEstadoDestinatario;
+    await this.repoDestinatario.save(destinatario);
+    return;
+
   }
 
   async verificarEnvioCompletado(idEnvio: number) {

@@ -8,6 +8,7 @@ import { UsuarioService } from "../admin/usuario/usuario.service";
 import { lastValueFrom } from "rxjs";
 import { Envio } from "../envio/entities/envio.entity";
 import { EnvioService } from "../envio/envio.service";
+import { Destinatario } from "../envio/entities/destinatario.entity";
 
 @Injectable()
 export class WhatsappService {
@@ -102,12 +103,15 @@ export class WhatsappService {
   async send(envio: Envio) {
     try {
       // Cambiar estado a Enviando
+      
       await this.envioService.updateEstado(envio.id, "Enviando");
       const { instance, token } = envio.usuario;
 
       // Función para procesar cada destinatario
-      const processDestinatario = async (destinatario, tipo: string) => {
-        if (destinatario.intentos >= 3) return;
+      const processDestinatario = async (destinatario: Destinatario, tipo: string) => {
+
+        // Cambiar estado a Enviando = 5
+        await this.envioService.updateEstadoDestinario(destinatario.id, 5);
 
         const reemplazo = envio.mensaje.replace(
           "@CLIENTE",
@@ -198,10 +202,13 @@ export class WhatsappService {
       );
 
       if (callApi?.data?.message === "ok") {
-        await this.envioService.updateDestinatarioEnviado(destinatarioId);
+        // Actualizar a Enviado = 2
+        await this.envioService.updateEstadoDestinario(destinatarioId, 2);
         await this.envioService.verificarEnvioCompletado(envioId);
       } else {
-        await this.envioService.updateIntento(destinatarioId);
+        // Actualizar a Cancelado = 3
+      await this.envioService.updateEstadoDestinario(destinatarioId, 3);
+        
       }
     } catch (error) {
       console.error("Error sending message:", error.message);
