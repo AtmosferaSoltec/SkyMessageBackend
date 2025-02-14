@@ -1,22 +1,18 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from "fs";
+import * as path from "path";
 
 const httpsCertificate = () => {
-  const isProduction = process.env.PRODUCTION === 'true';
+  const isProduction = process.env.PRODUCTION === "true";
   if (!isProduction) {
     return null;
   }
 
   const httpsOptions = {
     key: fs.readFileSync(
-      path.join(
-        '/etc/letsencrypt/live/sv-yaaugkfbpu.cloud.elastika.pe/privkey.pem',
-      ),
+      path.join("/etc/letsencrypt/live/atmosfera-soltec.com/privkey.pem")
     ),
     cert: fs.readFileSync(
-      path.join(
-        '/etc/letsencrypt/live/sv-yaaugkfbpu.cloud.elastika.pe/fullchain.pem',
-      ),
+      path.join("/etc/letsencrypt/live/atmosfera-soltec.com/fullchain.pem")
     ),
   };
   return httpsOptions;
