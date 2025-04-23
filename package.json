@@ -8,7 +8,8 @@
   "scripts": {
     "build": "nest build",
     "start": "pm2 start dist/main.js --name SkyMessage-4343",
-    "dev": "nest start --watch"
+    "dev": "nest start --watch",
+    "restart": "pm2 restart SkyMessage-4343"
   },
   "dependencies": {
     "@nestjs/axios": "^3.0.3",
