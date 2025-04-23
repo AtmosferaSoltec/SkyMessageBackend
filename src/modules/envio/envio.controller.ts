@@ -10,6 +10,7 @@ import {
   Req,
   HttpStatus,
   HttpCode,
+  Query,
 } from "@nestjs/common";
 import { EnvioService } from "./envio.service";
 import { UpdateEnvioDto } from "./dto/update-envio.dto";
@@ -36,9 +37,13 @@ export class EnvioController {
 
   @UseGuards(AuthGuard)
   @Get("historial")
-  findAllHistorial(@Req() req: Request) {
+  findAllHistorial(
+    @Req() req: Request,
+    @Query("page") page: number = 1,
+    @Query("limit") limit: number = 100
+  ) {
     const { id } = req["user"];
-    return this.envioService.findAllHistorial(id);
+    return this.envioService.findAllHistorial(id, page, limit);
   }
 
   @UseGuards(AuthGuard)

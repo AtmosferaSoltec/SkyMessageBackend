@@ -115,7 +115,7 @@ export class EnvioService {
     return await this.findOne(envioSave.id);
   }
 
-  async findAllHistorial(idUsuario: number) {
+  async findAllHistorial(idUsuario: number, page: number, limit: number) {
     const user = await this.usuarioService.findOne(idUsuario);
 
     const envios = await this.repo.find({
@@ -127,7 +127,10 @@ export class EnvioService {
       ],
       order: { created_at: "DESC" },
       where: { usuario: user },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+
     const listMap = envios.map((envio) => {
       const { destinatarios } = envio;
       const enviados = destinatarios.filter((dest) => {
